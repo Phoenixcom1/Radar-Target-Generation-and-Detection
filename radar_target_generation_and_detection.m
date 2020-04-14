@@ -158,15 +158,19 @@ figure,surf(doppler_axis,range_axis,RDM);
 
 %Slide Window through the complete Range Doppler Map
 
-% *%TODO* :
-%Select the number of Training Cells in both the dimensions.
 
-% *%TODO* :
+%Select the number of Training Cells in both the dimensions.
+T=[7,4];
 %Select the number of Guard Cells in both dimensions around the Cell under 
 %test (CUT) for accurate estimation
+G=[3,3];
+
 
 % *%TODO* :
 % offset the threshold by SNR value in dB
+offset = 5;
+threshold_cfar = zeros(size(RDM))-1;
+signal_cfar = zeros(size(RDM));
 
 % *%TODO* :
 %Create a vector to store noise_level for each iteration on training cells
@@ -183,11 +187,35 @@ noise_level = zeros(1,1);
 %Further add the offset to it to determine the threshold. Next, compare the
 %signal under CUT with this threshold. If the CUT level > threshold assign
 %it a value of 1, else equate it to 0.
+size = size(RDM);
+rdm_size_x = size(1);
+rdm_size_y = size(2);
 
+for i = (T(1)+G(1)+1) : (rdm_size_x-(G(1)+T(1)))
+   for j = (T(2)+G(2)+1) : (rdm_size_y-(G(2)+T(2)))
+       % Use RDM[x,y] as the matrix from the output of 2D FFT for implementing CFAR
+       %Fist sum the overall test cell region, then substract the sum of
+       %the overall guardcell region.
+       noise_sum = sum(db2pow(RDM( i-T(1)-G(1) : i+T(1)+G(1), j-G(2)-T(2) : j+G(2)+T(2) )),'all') -...
+                    sum(db2pow(RDM(i-G(1) : i+G(1), j-G(2) : j+G(2) )),'all');
+                
+       num_Tcells = (2*( T(1)+G(1) ) +1) * (2*( T(2)+G(2) ) +1) ...
+                    - (2* G(1) +1) * (2* G(2) +1);
 
-   % Use RDM[x,y] as the matrix from the output of 2D FFT for implementing
-   % CFAR
+       threshold = pow2db(noise_sum / num_Tcells);
+       threshold = threshold + offset;
+       threshold_cfar(i,j) = threshold;
+                
+                
+       CUT = RDM(i,j);
+       if (CUT > threshold)
+            signal_cfar(i,j) = 1;
+       end
+       %signal_cfar is initialized with yeros.
+   end
+end    
 
+   
 
 
 
@@ -209,9 +237,9 @@ noise_level = zeros(1,1);
 % *%TODO* :
 %display the CFAR output using the Surf function like we did for Range
 %Doppler Response output.
-figure,surf(doppler_axis,range_axis,'replace this with output');
+figure,surf(doppler_axis,range_axis,signal_cfar);
 colorbar;
-
+title('2D CFAR')
 
  
  
