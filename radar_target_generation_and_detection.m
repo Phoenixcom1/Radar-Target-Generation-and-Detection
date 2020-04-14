@@ -82,6 +82,7 @@ for i=1:length(t)
     Tx(i) = cos(2*pi*(fc*t(i) + slope * t(i)^2 / 2.0 ));
     Rx(i) = cos(2*pi*(fc*(t(i)-td(i)) + slope * (t(i)-td(i))^2 / 2.0 ));
     
+  
     % *%TODO* :
     %Now by mixing the Transmit and Receive generate the beat signal
     %This is done by element wise matrix multiplication of Transmit and
@@ -160,10 +161,10 @@ figure,surf(doppler_axis,range_axis,RDM);
 
 
 %Select the number of Training Cells in both the dimensions.
-T=[7,4];
+T=[4,10];
 %Select the number of Guard Cells in both dimensions around the Cell under 
 %test (CUT) for accurate estimation
-G=[3,3];
+G=[4,8];
 
 
 % *%TODO* :
@@ -191,25 +192,25 @@ size = size(RDM);
 rdm_size_x = size(1);
 rdm_size_y = size(2);
 
-for i = (T(1)+G(1)+1) : (rdm_size_x-(G(1)+T(1)))
-   for j = (T(2)+G(2)+1) : (rdm_size_y-(G(2)+T(2)))
+for x = (T(1)+G(1)+1) : (rdm_size_x-(G(1)+T(1)))
+   for y = (T(2)+G(2)+1) : (rdm_size_y-(G(2)+T(2)))
        % Use RDM[x,y] as the matrix from the output of 2D FFT for implementing CFAR
-       %Fist sum the overall test cell region, then substract the sum of
+       %Fist sum the overall training cell region, then substract the sum of
        %the overall guardcell region.
-       noise_sum = sum(db2pow(RDM( i-T(1)-G(1) : i+T(1)+G(1), j-G(2)-T(2) : j+G(2)+T(2) )),'all') -...
-                    sum(db2pow(RDM(i-G(1) : i+G(1), j-G(2) : j+G(2) )),'all');
+       noise_sum = sum(db2pow(RDM( i-T(1)-G(1) : i+T(1)+G(1), x-G(2)-T(2) : x+G(2)+T(2) )),'all') -...
+                    sum(db2pow(RDM(i-G(1) : i+G(1), y-G(2) : y+G(2) )),'all');
                 
        num_Tcells = (2*( T(1)+G(1) ) +1) * (2*( T(2)+G(2) ) +1) ...
                     - (2* G(1) +1) * (2* G(2) +1);
 
        threshold = pow2db(noise_sum / num_Tcells);
        threshold = threshold + offset;
-       threshold_cfar(i,j) = threshold;
+       threshold_cfar(x,y) = threshold;
                 
                 
-       CUT = RDM(i,j);
+       CUT = RDM(x,y);
        if (CUT > threshold)
-            signal_cfar(i,j) = 1;
+            signal_cfar(x,y) = 1;
        end
        %signal_cfar is initialized with yeros.
    end
