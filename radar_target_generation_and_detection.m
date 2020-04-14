@@ -3,18 +3,27 @@ clc;
 
 %% Radar Specifications 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Frequency of operation = 77GHz
-% Max Range = 200m
-% Range Resolution = 1 m
+% Frequency of operation = 77GHz / Operating carrier frequency of Radar /carrier freq
+%Max Range = 200m
+%Range_Resolution = 1m
 % Max Velocity = 100 m/s
+fc= 77e9;
+r_max = 200;
+r_res = 1;
+v_max = 100;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%
-
 %speed of light = 3e8
+c = 3e8;
+%chirp factor cf
+cf = 5.5;
+
 %% User Defined Range and Velocity of target
 % *%TODO* :
 % define the target's initial position and velocity. Note : Velocity
 % remains contant
- 
+%initial range of target = 120m and velocetiy = 35m/s
+target_dist = 120;
+target_vel = 35; 
 
 
 %% FMCW Waveform Generation
@@ -24,9 +33,9 @@ clc;
 % Calculate the Bandwidth (B), Chirp Time (Tchirp) and Slope (slope) of the FMCW
 % chirp using the requirements above.
 
-
-%Operating carrier frequency of Radar 
-fc= 77e9;             %carrier freq
+B = c / (2*r_res);
+Tchirp = cf*2*r_max/c;
+slope = B/Tchirp;
 
                                                           
 %The number of chirps in one sequence. Its ideal to have 2^ value for the ease of running the FFT
@@ -51,6 +60,8 @@ r_t=zeros(1,length(t));
 td=zeros(1,length(t));
 
 
+
+
 %% Signal generation and Moving Target simulation
 % Running the radar scenario over the time. 
 
@@ -58,19 +69,24 @@ for i=1:length(t)
     
     
     % *%TODO* :
-    %For each time stamp update the Range of the Target for constant velocity. 
+    %For each time stamp update the Range of the Target for constant velocity.
+    %range of target gets de/increased by const velocity * time passed
+    r_t(i) = target_dist + target_vel * t(i);
+    %the time delay is given by the distance from ego vehicle to target and
+    %back and the signals speed
+    td(i) = 2 * r_t(i) / c;
     
     % *%TODO* :
     %For each time sample we need update the transmitted and
     %received signal. 
-    Tx(i) = 
-    Rx (i)  =
+    Tx(i) = cos(2*pi*(fc*t(i) + slope * t(i)^2 / 2.0 ));
+    Rx(i) = cos(2*pi*(fc*(t(i)-td(i)) + slope * (t(i)-td(i))^2 / 2.0 ));
     
     % *%TODO* :
     %Now by mixing the Transmit and Receive generate the beat signal
     %This is done by element wise matrix multiplication of Transmit and
     %Receiver Signal
-    Mix(i) = 
+    Mix(i) = Tx(i).* Rx(i); 
     
 end
 
